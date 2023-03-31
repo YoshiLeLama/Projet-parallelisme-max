@@ -123,13 +123,8 @@ class TaskSystem:
                 new_stage = []
 
         # déterminisme
-        # L'objectif  est de vérifier que pour toutes les tâche si 2 ne n'ont pas de relation de précédence, alors il faut vérif que t1.read not in t2.write and t2.read not in t1.write and t2.write not in t1.write.
-        # for (k,v) in prec.items():
-        #     for t in tasks :
-        #         if t not in v :
-        #             for t2 in v :
-        #                 if self.tasks[t2].reads not in t.writes :
-        #                     ...
+        # L'objectif  est de vérifier que pour toutes les tâche si 2 tâches qui n'ont pas de relation de précédence, alors il faut vérif que t1.read not in t2.write and t2.read not in t1.write and t2.write not in t1.write.
+        # à vérifié. Pas sûr que cela fonctionne
         for k, v in prec.items():
             for ele in tasks:
                 if ele.name not in v:
