@@ -94,40 +94,57 @@ class TaskSystem:
         tasks_set: set[str] = set()
         for x in tasks:
             if x.name in tasks_set:
-                raise TaskValidationException("Le nom de tâche {} est dupliqué".format(x.name))
+                raise TaskValidationException(
+                    "Le nom de tâche {} est dupliqué".format(x.name))
             tasks_set.add(x.name)
 
         for (t_name, names) in prec.items():
             for name in names:
                 if name not in tasks_set:
-                    raise TaskValidationException("La liste de précédence de {} contient un nom de tâche invalide".format(t_name))
-                
+                    raise TaskValidationException(
+                        "La liste de précédence de {} contient un nom de tâche invalide".format(t_name))
+
         if len(list(t for t in tasks if len(prec[t.name]) == 0)) == 0:
             raise TaskValidationException("Il n'y a pas de racine")
 
-        # on vérifie s'il y a une boucle par ex : 
+        # on vérifie s'il y a une boucle par ex :
         # T1->T2->T3
-        #  |<|----|       
-        for (k,v) in prec.items():
+        #  |<|----|
+        for (k, v) in prec.items():
             stage = v[:]
             new_stage = []
             while len(stage) != 0:
                 for t in stage:
                     if k == t:
-                        raise TaskValidationException("{} est au sein d'une boucle".format(k))
+                        raise TaskValidationException(
+                            "{} est au sein d'une boucle".format(k))
                     new_stage += prec[t]
                 stage = new_stage[:]
                 new_stage = []
 
-
-        # déterminisme 
+        # déterminisme
         # L'objectif  est de vérifier que pour toutes les tâche si 2 ne n'ont pas de relation de précédence, alors il faut vérif que t1.read not in t2.write and t2.read not in t1.write and t2.write not in t1.write.
-        for (k,v) in prec.items(): 
-            for t in tasks : 
-                if t not in v :
-                    for t2 in v : 
-                        if self.tasks[t2].reads not in t.writes :
-                            ...
+        # for (k,v) in prec.items():
+        #     for t in tasks :
+        #         if t not in v :
+        #             for t2 in v :
+        #                 if self.tasks[t2].reads not in t.writes :
+        #                     ...
+        for k, v in prec.items():
+            for ele in tasks:
+                if ele.name not in v:
+                    # On regarde si les 2 éléments ne lisent pas au même endroit
+                    if any(lecture in self.tasks[ele.name].reads for lecture in self.tasks[k].reads):
+                        raise TaskValidationException(
+                            "2 taches sans contrainte de précédence lisent au même endroit. Le système de tâche est donc indéterminé.")
+                    # on regarde si k ne lit pas dans ce que ele écrit
+                    elif any(lecture in self.tasks[ele.name].writes for lecture in self.tasks[k].reads):
+                        raise TaskValidationException(
+                            "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
 
+                    # on regarde si k n'écrit pas dans ce que ele ecrit.
+                    elif (ecriture in self.tasks[ele.name].reads for lecture in self.tasks[k].writes):
+                        raise TaskValidationException(
+                            "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
 
         return True
