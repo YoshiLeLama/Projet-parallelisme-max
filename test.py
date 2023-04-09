@@ -16,16 +16,16 @@ def runT1():
 
 
 def runT2():
-    global Y,X
+    global Y
 
     Y = 2
-    X = Y+1
 
 
 def runTsomme():
     global X, Y, Z
 
     Z = X + Y
+
 
 def runTmulti():
     global Z
@@ -40,8 +40,10 @@ t2 = pm.Task("T2", [], ["Y"], runT2)
 tSomme = pm.Task("somme", ["X", "Y"], ["Z"], runTsomme)
 
 try:
-    s1 = pm.TaskSystem([t1, t2, tSomme], {"T1": [], "T2": [], "somme": ["T1", "T2"]})
+    s1 = pm.TaskSystem([t1, t2, tSomme], {
+                       "T1": [], "T2": [], "somme": ["T1", "T2"]})
     s1.detTestRnd()
+    s1.parCost()
 except pm.TaskValidationException as e:
     print(e)
 else:

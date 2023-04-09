@@ -1,9 +1,11 @@
+import time
 from typing import Callable
 from threading import Thread
 import graphviz
-
+import statistics
 import networkx as nx
 import matplotlib.pyplot as plt
+
 
 class Task:
     name: str
@@ -20,7 +22,7 @@ class Task:
 
 class TaskValidationException(Exception):
     ...
-    
+
 
 class TaskSystem:
     precedencies: dict[str, list[str]]
@@ -28,6 +30,7 @@ class TaskSystem:
     finished_tasks: set[str]
 
     def __init__(self, tasks: list[Task], prec: dict) -> None:
+
         self.tasks = {t.name: t for t in tasks}
         self.precedencies = prec.copy()
         self.check_entry_validity(tasks, prec)
@@ -36,7 +39,7 @@ class TaskSystem:
 
     def get_dependencies(self, nom_tache: str) -> list[str]:
         return self.precedencies[nom_tache]
-    
+
     def get_precedencies(self, task_name: str):
         precedencies_list = self.precedencies[task_name]
 
@@ -137,8 +140,8 @@ class TaskSystem:
 
         # déterminisme
         # L'objectif  est de vérifier que pour toutes les tâche si 2 tâches qui n'ont pas de relation de précédence, alors il faut vérif que t1.read not in t2.write and t2.read not in t1.write and t2.write not in t1.write.
-        # à vérifié. Pas sûr que cela fonctionne 
-    
+        # à vérifié. Pas sûr que cela fonctionne
+
         for k, v in prec.items():
             for ele in tasks:
                 # la condition permet de vérif qu'on a pas : A->B
@@ -158,11 +161,28 @@ class TaskSystem:
                         "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
 
         return True
-    
+
     def detTestRnd(self):
         ...
-    
-    
+
+    def parCost(self):
+        self.run()
+        self.runSeq()
+        resultRun = []
+        resultRunSeq = []
+        for _ in range(5):
+            start = time.time_ns()
+            self.run()
+            end = time.time_ns() - start
+            resultRun.append(end)
+            start = time.time_ns()
+            self.runSeq()
+            end = time.time_ns() - start
+            resultRunSeq.append(end)
+        print("temps moyen d'execution // :", statistics.mean(resultRun))
+        print("temps moyen d'execution séquencielle :",
+              statistics.mean(resultRunSeq))
+
     def draw_graphviz(self):
         dot = graphviz.Digraph(comment="something")
         # genération de tous les noeuds
@@ -176,8 +196,6 @@ class TaskSystem:
         dot.format = 'png'
         dot.render('Graph', view=True)
 
-    
-    
     def draw(self):
         precedence_graph = nx.DiGraph()
 
@@ -195,8 +213,3 @@ class TaskSystem:
                          node_color="#FFEEDD", edgecolors="#000000")
 
         plt.show()
-        
-
-
-
-
