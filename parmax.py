@@ -1,6 +1,9 @@
 from typing import Callable
 from threading import Thread
+import graphviz
 
+import networkx as nx
+import matplotlib.pyplot as plt
 
 class Task:
     name: str
@@ -17,7 +20,7 @@ class Task:
 
 class TaskValidationException(Exception):
     ...
-
+    
 
 class TaskSystem:
     precedencies: dict[str, list[str]]
@@ -26,13 +29,26 @@ class TaskSystem:
 
     def __init__(self, tasks: list[Task], prec: dict) -> None:
         self.tasks = {t.name: t for t in tasks}
+        self.precedencies = prec.copy()
         self.check_entry_validity(tasks, prec)
 
-        self.precedencies = prec.copy()
         self.finished_tasks = set()
 
     def get_dependencies(self, nom_tache: str) -> list[str]:
         return self.precedencies[nom_tache]
+    
+    def get_precedencies(self, task_name: str):
+        precedencies_list = self.precedencies[task_name]
+
+        if len(precedencies_list) == 0:
+            return set()
+
+        new_precedencies = set(precedencies_list)
+
+        for t in precedencies_list:
+            new_precedencies = new_precedencies.union(self.get_precedencies(t))
+
+        return new_precedencies
 
     def generate_task_closure(self, task: Task):
         precedence_tasks = set(self.get_dependencies(task.name))
@@ -44,8 +60,6 @@ class TaskSystem:
                     break
 
             task.run()
-
-            print(task.name)
 
             self.finished_tasks.add(task.name)
 
@@ -74,7 +88,6 @@ class TaskSystem:
             exec_queue = new_queue.copy()
         # On exécute les taches.
         for task in exec_queue:
-            print(task.name)
             task.run()
 
     def run(self) -> None:
@@ -124,22 +137,66 @@ class TaskSystem:
 
         # déterminisme
         # L'objectif  est de vérifier que pour toutes les tâche si 2 tâches qui n'ont pas de relation de précédence, alors il faut vérif que t1.read not in t2.write and t2.read not in t1.write and t2.write not in t1.write.
-        # à vérifié. Pas sûr que cela fonctionne
+        # à vérifié. Pas sûr que cela fonctionne 
+    
         for k, v in prec.items():
             for ele in tasks:
-                if ele.name not in v:
-                    # On regarde si les 2 éléments ne lisent pas au même endroit
-                    if any(lecture in self.tasks[ele.name].reads for lecture in self.tasks[k].reads):
-                        raise TaskValidationException(
-                            "2 taches sans contrainte de précédence lisent au même endroit. Le système de tâche est donc indéterminé.")
-                    # on regarde si k ne lit pas dans ce que ele écrit
-                    elif any(lecture in self.tasks[ele.name].writes for lecture in self.tasks[k].reads):
-                        raise TaskValidationException(
-                            "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
-
-                    # on regarde si k n'écrit pas dans ce que ele ecrit.
-                    elif (ecriture in self.tasks[ele.name].reads for lecture in self.tasks[k].writes):
-                        raise TaskValidationException(
-                            "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
+                # la condition permet de vérif qu'on a pas : A->B
+                if ele.name == k or ele.name in self.get_precedencies(k) or k in self.get_precedencies(ele.name):
+                    continue
+                # On regarde si les 2 éléments ne écrivent pas au même endroit
+                if len(set(ele.writes).intersection(set(self.tasks[k].writes))) != 0:
+                    raise TaskValidationException(
+                        "2 taches sans contrainte de précédence ecrivent au même endroit. Le système de tâche est donc indéterminé.")
+                # on regarde si k ne lit pas dans ce que ele écrit
+                elif len(set(ele.writes).intersection(set(self.tasks[k].reads))) != 0:
+                    raise TaskValidationException(
+                        "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
+                # on regarde si k n'écrit pas dans ce que ele lit.
+                elif len(set(ele.reads).intersection(set(self.tasks[k].writes))) != 0:
+                    raise TaskValidationException(
+                        "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
 
         return True
+    
+    def detTestRnd(self):
+        ...
+    
+    
+    def draw_graphviz(self):
+        dot = graphviz.Digraph(comment="something")
+        # genération de tous les noeuds
+        for task in self.tasks:
+            dot.node(task)
+        for task, dependecies in self.precedencies.items():
+            for dependece in dependecies:
+                # lien entre les noeuds pour les dépendances.
+                dot.edge(dependece, task)
+
+        dot.format = 'png'
+        dot.render('Graph', view=True)
+
+    
+    
+    def draw(self):
+        precedence_graph = nx.DiGraph()
+
+        for task in self.tasks:
+            precedence_graph.add_node(task)
+        for task, dependecies in self.precedencies.items():
+            for dependence in dependecies:
+                # lien entre les noeuds pour les dépendances.
+                precedence_graph.add_edge(dependence, task)
+
+        plt.subplot(111)
+        nx.draw_networkx(precedence_graph, pos=nx.nx_pydot.pydot_layout(precedence_graph, prog="dot"),
+                         with_labels=True, node_size=2000, node_shape="o",
+                         font_family="JetBrains Mono", font_size=12,
+                         node_color="#FFEEDD", edgecolors="#000000")
+
+        plt.show()
+        
+
+
+
+
