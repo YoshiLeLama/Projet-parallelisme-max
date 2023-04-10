@@ -41,6 +41,15 @@ class TaskSystem:
         return self.precedencies[nom_tache]
 
     def get_precedencies(self, task_name: str):
+        """permet de récupérer toutes les précédences de la tâche évaluer. Sers pour vérifier qu'une liste de tâche est déterminer.
+        Par exemple si on a A->B->C et qu'on étudie C la focntion nous retournera A,B
+
+        Args:
+            task_name (str): tâche considéré
+
+        Returns:
+            set(str): un set de toutes les précédences de la tâche.
+        """
         precedencies_list = self.precedencies[task_name]
 
         if len(precedencies_list) == 0:
@@ -54,6 +63,15 @@ class TaskSystem:
         return new_precedencies
 
     def generate_task_closure(self, task: Task):
+        """
+        permet de respecter les contraintes de précédence pour l'exécution // de notre liste de tâche à exécuter.
+
+        Args:
+            task (Task): tâche à exécuter 
+
+        Returns:
+            function: la fonction permettant de respecter les contrainte de précédence.
+        """
         precedence_tasks = set(self.get_dependencies(task.name))
         # on attends que toutes les conditions de précédences soit vérifiés.
 
@@ -71,6 +89,9 @@ class TaskSystem:
     #  exécuter les tâches du système de façon séquentielle en respectant l’ordre imposé par la relation de précédence,
 
     def runSeq(self) -> None:
+        """
+        exécute notre liste de tâche de manière séquentiel en respectant les contraintes de précédence.
+        """
         exec_queue: list[Task] = []
         added_tasks: set[str] = set()
         # On récupère toutes les tâches racine (elles n'ont pas de relation de dépendance)
@@ -94,6 +115,9 @@ class TaskSystem:
             task.run()
 
     def run(self) -> None:
+        """
+        lance notre liste de tâche de manière // en respectant les contraintes de précédence. 
+        """
         self.finished_tasks = set()
         threads: list[Thread] = []
         # On créer des threads pour toutes les tâches.
@@ -107,13 +131,30 @@ class TaskSystem:
             t.join()
 
     def check_entry_validity(self, tasks: list[Task], prec: dict[str, list[str]]) -> bool:
+        """fonctoin qui permet de vérifier que la liste de tâche fournie par l'utilisateur est valide. Pour cela on va faire plusierus test
+
+        Args:
+            tasks (list[Task]): liste des tâches 
+            prec (dict[str, list[str]]): la dépendence de précédence des différentes tâches 
+
+        Raises:
+            TaskValidationException: nom de tâche dupliqué
+            TaskValidationException: nom de tâche invalide 
+            TaskValidationException: pas de racine 
+            TaskValidationException: les tâches forment une boucle
+            TaskValidationException: indéterminé
+
+        Returns:
+            bool: l'entrée fournie est valide.
+        """
+        # un nom de tâche est dupliqué
         tasks_set: set[str] = set()
         for x in tasks:
             if x.name in tasks_set:
                 raise TaskValidationException(
                     "Le nom de tâche {} est dupliqué".format(x.name))
             tasks_set.add(x.name)
-
+        # contioen un nom de tache invalide
         for (t_name, names) in prec.items():
             for name in names:
                 if name not in tasks_set:
@@ -166,6 +207,9 @@ class TaskSystem:
         ...
 
     def parCost(self):
+        """
+        fonction qui permet de comparer le temps d'exécution des 2 fonctions en utilisant perf_conter
+        """
         self.run()
         self.runSeq()
         resultRun = []
@@ -184,6 +228,9 @@ class TaskSystem:
               statistics.mean(resultRunSeq))
 
     def draw_graphviz(self):
+        """
+        permet de générer l'arbre d'exécution en utilisant graphviz.
+        """
         dot = graphviz.Digraph(comment="something")
         # genération de tous les noeuds
         for task in self.tasks:
