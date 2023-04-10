@@ -171,13 +171,13 @@ class TaskSystem:
         resultRun = []
         resultRunSeq = []
         for _ in range(5):
-            start = time.time_ns()
+            start = time.perf_counter()
             self.run()
-            end = time.time_ns() - start
+            end = time.perf_counter() - start
             resultRun.append(end)
-            start = time.time_ns()
+            start = time.perf_counter()
             self.runSeq()
-            end = time.time_ns() - start
+            end = time.perf_counter() - start
             resultRunSeq.append(end)
         print("temps moyen d'execution // :", statistics.mean(resultRun))
         print("temps moyen d'execution séquencielle :",
