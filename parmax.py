@@ -131,18 +131,14 @@ class TaskSystem:
             t.join()
 
     def check_entry_validity(self, tasks: list[Task], prec: dict[str, list[str]]) -> bool:
-        """fonctoin qui permet de vérifier que la liste de tâche fournie par l'utilisateur est valide. Pour cela on va faire plusierus test
+        """fonctoin qui permet de vérifier que la liste de tâche fournie par l'utilisateur est valide. Pour cela on va faire plusieurs tests.
 
         Args:
             tasks (list[Task]): liste des tâches 
             prec (dict[str, list[str]]): la dépendence de précédence des différentes tâches 
 
-        Raises:
-            TaskValidationException: nom de tâche dupliqué
-            TaskValidationException: nom de tâche invalide 
-            TaskValidationException: pas de racine 
-            TaskValidationException: les tâches forment une boucle
-            TaskValidationException: indéterminé
+        Erreurs:
+            TaskValidationException
 
         Returns:
             bool: l'entrée fournie est valide.
