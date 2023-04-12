@@ -201,6 +201,9 @@ class TaskSystem:
         return True
 
     def detTestRnd(self):
+        """
+        fct qui permet d'exécuter notre liste de tâche de manière séquentielle pour voir si une variable ou une dépendence n'a pas été oublié d'être spécifié. 
+        """
 
         for _ in range(5):
             exec_queue: list[Task] = []
@@ -210,7 +213,10 @@ class TaskSystem:
                 exec_queue.append(self.tasks[task_name])
                 added_tasks.add(task_name)
 
+            # la première tâche à exécuter sera aléatoire
             exec_queue = random.sample(exec_queue, len(exec_queue)).copy()
+
+            # on ajoute le reste des tâches dans la liste de tâche à exec.
             for name, task in self.tasks.items():
                 if name not in added_tasks:
                     exec_queue.append(task)
@@ -218,8 +224,10 @@ class TaskSystem:
 
             exec = exec_queue.pop(0)
             added_tasks.clear()
-            # On exécute les taches.
+            # On rend aléatoire le reste des tâche à exécuter pour simuler le plus de possibilité.
             random.sample(exec_queue, len(exec_queue))
+
+            # On exécute les tâches tout en respectant les contraintes de précédence.
             while len(added_tasks) != len(self.tasks):
                 exec.run()
                 added_tasks.add(exec.name)
