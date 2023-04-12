@@ -5,6 +5,7 @@ import graphviz
 import statistics
 import networkx as nx
 import matplotlib.pyplot as plt
+import random
 
 
 class Task:
@@ -200,7 +201,41 @@ class TaskSystem:
         return True
 
     def detTestRnd(self):
-        ...
+        for _ in range(5):
+            exec_queue: list[Task] = []
+            added_tasks: set[str] = set()
+            # On récupère toutes les tâches racine (elles n'ont pas de relation de dépendance)
+            for task_name in (k for (k, v) in self.precedencies.items() if len(v) == 0):
+                exec_queue.append(self.tasks[task_name])
+                added_tasks.add(task_name)
+
+            new_queue = exec_queue.copy()
+            new_queue = random.sample(exec_queue, len(exec_queue)).copy()
+            # tant que tous les éléments ne sont pas dans exec_queue on continue.
+            while len(added_tasks) != len(self.tasks):
+                for (name, task) in self.tasks.items():
+                    dep = self.get_dependencies(name)
+                    # on recherche une tache qui n'est n'est pas déjà dans la file d'exécution et pour laquellle toute c taches sont dans la file d"exécution.
+                    if all(elem in (t.name for t in exec_queue) for elem in dep) and name not in added_tasks:
+                        new_queue.append(task)
+                        added_tasks.add(name)
+
+                exec_queue = new_queue.copy()
+
+            exec = exec_queue.pop(0)
+            added_tasks.clear()
+            # On exécute les taches.
+            random.sample(exec_queue, len(exec_queue))
+            while len(added_tasks) != len(self.tasks):
+                exec.run()
+                added_tasks.add(exec.name)
+                for t in exec_queue:
+                    dep = self.get_dependencies(t.name)
+                    if all(elem in (e for e in added_tasks) for elem in dep):
+                        i = exec_queue.index(t)
+                        exec = exec_queue.pop(i)
+                        print(exec.name)
+                        break
 
     def parCost(self):
         """
