@@ -49,6 +49,7 @@ try:
     s1 = pm.TaskSystem([t1, t2, tSomme, tMulti], {
                        "T1": [], "T2": [], "somme": ["T1", "T2"], "multi": ["somme"]})
     # s1.parCost()
+    s1.draw_graphviz()
 except pm.TaskValidationException as e:
     print(e)
 else:

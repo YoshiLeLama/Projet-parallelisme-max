@@ -264,7 +264,7 @@ class TaskSystem:
         """
         permet de générer l'arbre d'exécution en utilisant graphviz.
         """
-        dot = graphviz.Digraph(comment="something")
+        dot = graphviz.Digraph(directory=None)
         # genération de tous les noeuds
         for task in self.tasks:
             dot.node(task)
@@ -276,7 +276,7 @@ class TaskSystem:
         dot.format = 'png'
         dot.render('Graph', view=True)
 
-    def draw(self):
+    def draw_pydot(self):
         precedence_graph = nx.DiGraph()
 
         for task in self.tasks:
