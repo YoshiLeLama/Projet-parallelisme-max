@@ -201,6 +201,7 @@ class TaskSystem:
         return True
 
     def detTestRnd(self):
+
         for _ in range(5):
             exec_queue: list[Task] = []
             added_tasks: set[str] = set()
@@ -209,18 +210,11 @@ class TaskSystem:
                 exec_queue.append(self.tasks[task_name])
                 added_tasks.add(task_name)
 
-            new_queue = exec_queue.copy()
-            new_queue = random.sample(exec_queue, len(exec_queue)).copy()
-            # tant que tous les éléments ne sont pas dans exec_queue on continue.
-            while len(added_tasks) != len(self.tasks):
-                for (name, task) in self.tasks.items():
-                    dep = self.get_dependencies(name)
-                    # on recherche une tache qui n'est n'est pas déjà dans la file d'exécution et pour laquellle toute c taches sont dans la file d"exécution.
-                    if all(elem in (t.name for t in exec_queue) for elem in dep) and name not in added_tasks:
-                        new_queue.append(task)
-                        added_tasks.add(name)
-
-                exec_queue = new_queue.copy()
+            exec_queue = random.sample(exec_queue, len(exec_queue)).copy()
+            for name, task in self.tasks.items():
+                if name not in added_tasks:
+                    exec_queue.append(task)
+                    added_tasks.add(name)
 
             exec = exec_queue.pop(0)
             added_tasks.clear()
