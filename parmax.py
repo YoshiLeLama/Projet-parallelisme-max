@@ -82,7 +82,7 @@ class TaskSystem:
             self.draw_pydot()
 
     def get_precedencies(self, task_name: str):
-        """permet de récupérer toutes les précédences de la tâche évaluer. Sers pour vérifier qu'une liste de tâche est déterminer.
+        """permet de récupérer toutes les précédences de la tâche évaluer. Utilisé pour vérifier qu'une liste de tâche est déterminer.
         Par exemple si on a A->B->C et qu'on étudie C la focntion nous retournera A,B
 
         Args:
@@ -196,13 +196,14 @@ class TaskSystem:
                 raise TaskValidationException(
                     "Le nom de tâche {} est dupliqué".format(x.name))
             tasks_set.add(x.name)
-        # contioen un nom de tache invalide
+        # contien un nom de tache invalide
         for (t_name, names) in prec.items():
             for name in names:
                 if name not in tasks_set:
                     raise TaskValidationException(
                         "La liste de précédence de {} contient un nom de tâche invalide".format(t_name))
 
+        # Au moins une des tâche est la racine
         if len(list(t for t in tasks if len(prec[t.name]) == 0)) == 0:
             raise TaskValidationException("Il n'y a pas de racine")
 
@@ -227,7 +228,7 @@ class TaskSystem:
 
         for k, v in prec.items():
             for ele in tasks:
-                # la condition permet de vérif qu'on a pas : A->B
+                # la condition permet de vérif qu'on a pas : A->B ou A->B->C
                 if ele.name == k or ele.name in self.get_precedencies(k) or k in self.get_precedencies(ele.name):
                     continue
                 # On regarde si les 2 éléments ne écrivent pas au même endroit
