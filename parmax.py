@@ -12,9 +12,9 @@ class Task:
     name: str
     reads: list[str]
     writes: list[str]
-    run: Callable[[], None]
+    run: Callable[[dict], None]
 
-    def __init__(self, name: str, reads: list[str], writes: list[str], run: Callable[[], None]) -> None:
+    def __init__(self, name: str, reads: list[str], writes: list[str], run: Callable[[dict], None]) -> None:
         self.name = name
         self.reads = reads[:]
         self.writes = writes[:]
@@ -29,14 +29,18 @@ class TaskSystem:
     precedencies: dict[str, list[str]]
     tasks: dict[str, Task]
     finished_tasks: set[str]
+    variables: dict[str, int]
+    seq_exec_queue: list[Task]
 
-    def __init__(self, tasks: list[Task], prec: dict) -> None:
+    def __init__(self, tasks: list[Task], prec: dict, variables: dict) -> None:
 
         self.tasks = {t.name: t for t in tasks}
         self.precedencies = prec.copy()
+        self.variables = variables
         self.check_entry_validity(tasks, prec)
 
         self.finished_tasks = set()
+        self.seq_exec_queue = []
 
     def get_dependencies(self, nom_tache: str) -> list[str]:
         return self.precedencies[nom_tache]
@@ -81,7 +85,7 @@ class TaskSystem:
                 if precedence_tasks.issubset(self.finished_tasks):
                     break
 
-            task.run()
+            task.run(self.variables)
 
             self.finished_tasks.add(task.name)
 
@@ -93,29 +97,30 @@ class TaskSystem:
         """
         exécute notre liste de tâche de manière séquentiel en respectant les contraintes de précédence.
         """
-        exec_queue: list[Task] = []
-        added_tasks: set[str] = set()
-        # On récupère toutes les tâches racine (elles n'ont pas de relation de dépendance)
-        for task_name in (k for (k, v) in self.precedencies.items() if len(v) == 0):
-            exec_queue.append(self.tasks[task_name])
-            added_tasks.add(task_name)
+        if len(self.seq_exec_queue) != len(self.tasks):
+            self.seq_exec_queue = []
+            added_tasks: set[str] = set()
+            # On récupère toutes les tâches racine (elles n'ont pas de relation de dépendance)
+            for task_name in (k for (k, v) in self.precedencies.items() if len(v) == 0):
+                self.seq_exec_queue.append(self.tasks[task_name])
+                added_tasks.add(task_name)
 
-        new_queue = exec_queue.copy()
-        # tant que tous les éléments ne sont pas dans exec_queue on continue.
-        while len(exec_queue) != len(self.tasks):
-            for (name, task) in self.tasks.items():
-                dep = self.get_dependencies(name)
-                # on recherche une tache qui n'est n'est pas déjà dans la file d'exécution et pour laquellle toute c taches sont dans la file d"exécution.
-                if all(elem in (t.name for t in exec_queue) for elem in dep) and name not in added_tasks:
-                    new_queue.append(task)
-                    added_tasks.add(name)
+            new_queue = self.seq_exec_queue.copy()
+            # tant que tous les éléments ne sont pas dans exec_queue on continue.
+            while len(self.seq_exec_queue) != len(self.tasks):
+                for (name, task) in self.tasks.items():
+                    dep = self.get_dependencies(name)
+                    # on recherche une tache qui n'est n'est pas déjà dans la file d'exécution et pour laquellle toute c taches sont dans la file d"exécution.
+                    if all(elem in (t.name for t in self.seq_exec_queue) for elem in dep) and name not in added_tasks:
+                        new_queue.append(task)
+                        added_tasks.add(name)
 
-            exec_queue = new_queue.copy()
+                self.seq_exec_queue = new_queue.copy()
         # On exécute les taches.
-        for task in exec_queue:
-            task.run()
+        for task in self.seq_exec_queue:
+            task.run(self.variables)
 
-    def run(self) -> None:
+    def run(self, shuffle: bool = False) -> None:
         """
         lance notre liste de tâche de manière // en respectant les contraintes de précédence. 
         """
@@ -125,11 +130,16 @@ class TaskSystem:
         for task in self.tasks.values():
             threads.append(Thread(target=self.generate_task_closure(task)))
 
+        if shuffle:
+            random.shuffle(threads)
+
         for t in threads:
             t.start()
 
         for t in threads:
             t.join()
+
+        print(self.variables)
 
     def check_entry_validity(self, tasks: list[Task], prec: dict[str, list[str]]) -> bool:
         """fonctoin qui permet de vérifier que la liste de tâche fournie par l'utilisateur est valide. Pour cela on va faire plusieurs tests.
@@ -204,40 +214,22 @@ class TaskSystem:
         """
         fct qui permet d'exécuter notre liste de tâche de manière séquentielle pour voir si une variable ou une dépendence n'a pas été oublié d'être spécifié. 
         """
+        results = []
+        initialVariables = self.variables.copy()
+        for _ in range(0, 5):
+            self.run(shuffle=True)
+            results.append(self.variables.copy())
+            self.variables = initialVariables.copy()
+        
+        for varName in self.variables:
+            baseValue = results[0][varName]
+            for i in range(1, len(results)):
+                if results[i][varName] != baseValue:
+                    return False
+        
+        return True
 
-        for _ in range(5):
-            exec_queue: list[Task] = []
-            added_tasks: set[str] = set()
-            # On récupère toutes les tâches racine (elles n'ont pas de relation de dépendance)
-            for task_name in (k for (k, v) in self.precedencies.items() if len(v) == 0):
-                exec_queue.append(self.tasks[task_name])
-                added_tasks.add(task_name)
 
-            # la première tâche à exécuter sera aléatoire
-            exec_queue = random.sample(exec_queue, len(exec_queue)).copy()
-
-            # on ajoute le reste des tâches dans la liste de tâche à exec.
-            for name, task in self.tasks.items():
-                if name not in added_tasks:
-                    exec_queue.append(task)
-                    added_tasks.add(name)
-
-            exec = exec_queue.pop(0)
-            added_tasks.clear()
-            # On rend aléatoire le reste des tâche à exécuter pour simuler le plus de possibilité.
-            random.sample(exec_queue, len(exec_queue))
-
-            # On exécute les tâches tout en respectant les contraintes de précédence.
-            while len(added_tasks) != len(self.tasks):
-                exec.run()
-                added_tasks.add(exec.name)
-                for t in exec_queue:
-                    dep = self.get_dependencies(t.name)
-                    if all(elem in (e for e in added_tasks) for elem in dep):
-                        i = exec_queue.index(t)
-                        exec = exec_queue.pop(i)
-                        print(exec.name)
-                        break
 
     def parCost(self):
         """
@@ -248,17 +240,16 @@ class TaskSystem:
         resultRun = []
         resultRunSeq = []
         for _ in range(5):
-            start = time.perf_counter()
+            start = time.perf_counter_ns()
             self.run()
-            end = time.perf_counter() - start
+            end = time.perf_counter_ns() - start
             resultRun.append(end)
-            start = time.perf_counter()
+            start = time.perf_counter_ns()
             self.runSeq()
-            end = time.perf_counter() - start
+            end = time.perf_counter_ns() - start
             resultRunSeq.append(end)
-        print("temps moyen d'execution // :", statistics.mean(resultRun))
-        print("temps moyen d'execution séquencielle :",
-              statistics.mean(resultRunSeq))
+        print("temps moyen d'execution // : {0}ns".format(statistics.mean(resultRun)))
+        print("temps moyen d'execution séquentielle : {0}ns".format(statistics.mean(resultRunSeq)))
 
     def draw_graphviz(self):
         """
