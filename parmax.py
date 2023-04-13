@@ -10,14 +10,14 @@ import random
 
 class Task:
     name: str
-    reads: list[str]
-    writes: list[str]
+    reads: set[str]
+    writes: set[str]
     run: Callable[[dict], None]
 
-    def __init__(self, name: str, reads: list[str], writes: list[str], run: Callable[[dict], None]) -> None:
+    def __init__(self, name: str, reads: set[str], writes: set[str], run: Callable[[dict], None]) -> None:
         self.name = name
-        self.reads = reads[:]
-        self.writes = writes[:]
+        self.reads = reads.copy()
+        self.writes = writes.copy()
         self.run = run
 
 
@@ -26,24 +26,60 @@ class TaskValidationException(Exception):
 
 
 class TaskSystem:
-    precedencies: dict[str, list[str]]
+    precedencies: dict[str, set[str]]
     tasks: dict[str, Task]
     finished_tasks: set[str]
     variables: dict[str, int]
     seq_exec_queue: list[Task]
 
-    def __init__(self, tasks: list[Task], prec: dict, variables: dict) -> None:
-
+    def __init__(self, tasks: list[Task], prec: dict, variables: dict):
         self.tasks = {t.name: t for t in tasks}
         self.precedencies = prec.copy()
-        self.variables = variables
-        self.check_entry_validity(tasks, prec)
-
+        self.variables = variables.copy()
         self.finished_tasks = set()
         self.seq_exec_queue = []
 
-    def get_dependencies(self, nom_tache: str) -> list[str]:
-        return self.precedencies[nom_tache]
+        self.check_entry_validity(tasks, prec)
+
+        self.algo_para_max(shouldDraw=False)
+
+    def algo_para_max(self, shouldDraw: bool = True):
+        # {"T1": [], "T2": ["T1"], "somme": ["T2", "T1"]}
+        precedencies: dict[str, set[str]] = dict()
+        for t in self.tasks.keys():
+            precedencies[t] = set()
+
+
+        # On créer un chemin entre 2 tâches T1 et T2 si les conditions de bernstein 
+        # L1 ∩ E2 = ∅ et L2 ∩ E1 = ∅ et E1 ∩ E2 = ∅ ne sont pas respecter.
+        for tDestName, tDest in self.tasks.items():
+            precs = self.get_precedencies(tDestName)
+            for tOriginName in precs:
+                tOrigin = self.tasks[tOriginName]
+                if len(tOrigin.reads.intersection(tDest.writes)) != 0 or len(tDest.reads.intersection(tOrigin.writes)) != 0 or len(tOrigin.writes.intersection(tDest.writes)) != 0:
+                    precedencies[tDestName].add(tOriginName)
+
+        # 1 -> 2 -> 6 
+        # |---------|
+        # On veut suppr le liens de 1 à 6
+        new_precedencies = {name: precs.copy() for name, precs in precedencies.items()}
+
+        # Fonction récursive pour retirer les précédences redondantes de la tâche tDest
+        def removeRedundancy(tDest: str, tOrigin: str, tDestPrecs: set[str]):
+            new_precedencies[tDest].difference_update(precedencies[tOrigin].intersection(tDestPrecs))
+            print(precedencies, new_precedencies)
+            for newOrigin in precedencies[tOrigin]:
+                removeRedundancy(tDest, newOrigin, tDestPrecs)
+
+        # Pour chaque tâche, on enlève les précédences redondantes en remontant jusqu'à la racine et en testant si tDest a des précédences communes avec des tâches la précédant
+        for tDest, tDestPrecs in precedencies.items():
+            for tOrigin in tDestPrecs:
+                removeRedundancy(tDest, tOrigin, tDestPrecs)
+
+        self.precedencies = new_precedencies.copy()
+
+        if shouldDraw:
+            self.draw_pydot()
 
     def get_precedencies(self, task_name: str):
         """permet de récupérer toutes les précédences de la tâche évaluer. Sers pour vérifier qu'une liste de tâche est déterminer.
@@ -77,7 +113,7 @@ class TaskSystem:
         Returns:
             function: la fonction permettant de respecter les contrainte de précédence.
         """
-        precedence_tasks = set(self.get_dependencies(task.name))
+        precedence_tasks = set(self.precedencies[task.name])
         # on attends que toutes les conditions de précédences soit vérifiés de la tâche mis en paramètre.
 
         def run_task():
@@ -109,7 +145,7 @@ class TaskSystem:
             # tant que tous les éléments ne sont pas dans exec_queue on continue.
             while len(self.seq_exec_queue) != len(self.tasks):
                 for (name, task) in self.tasks.items():
-                    dep = self.get_dependencies(name)
+                    dep = self.precedencies[name]
                     # on recherche une tache qui n'est n'est pas déjà dans la file d'exécution et pour laquellle toute c taches sont dans la file d"exécution.
                     if all(elem in (t.name for t in self.seq_exec_queue) for elem in dep) and name not in added_tasks:
                         new_queue.append(task)
@@ -130,6 +166,7 @@ class TaskSystem:
         for task in self.tasks.values():
             threads.append(Thread(target=self.generate_task_closure(task)))
 
+        # Si shuffle est True, alors on mélange aléatoirement l'ordre d'exécution des threads
         if shuffle:
             random.shuffle(threads)
 
@@ -138,8 +175,6 @@ class TaskSystem:
 
         for t in threads:
             t.join()
-
-        print(self.variables)
 
     def check_entry_validity(self, tasks: list[Task], prec: dict[str, list[str]]) -> bool:
         """fonctoin qui permet de vérifier que la liste de tâche fournie par l'utilisateur est valide. Pour cela on va faire plusieurs tests.
@@ -196,43 +231,44 @@ class TaskSystem:
                 if ele.name == k or ele.name in self.get_precedencies(k) or k in self.get_precedencies(ele.name):
                     continue
                 # On regarde si les 2 éléments ne écrivent pas au même endroit
-                if len(set(ele.writes).intersection(set(self.tasks[k].writes))) != 0:
+                if len(ele.writes.intersection(self.tasks[k].writes)) != 0:
                     raise TaskValidationException(
-                        "2 taches sans contrainte de précédence ecrivent au même endroit. Le système de tâche est donc indéterminé.")
+                        "{0} et {1} écrivent au même endroit sans contrainte de précédence.".format(ele.name, k))
                 # on regarde si k ne lit pas dans ce que ele écrit
-                elif len(set(ele.writes).intersection(set(self.tasks[k].reads))) != 0:
+                elif len(ele.writes.intersection(self.tasks[k].reads)) != 0:
                     raise TaskValidationException(
-                        "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
+                        "{0} écrit dans ce que lit {1} sans contrainte de précédance.".format(ele.name, k))
                 # on regarde si k n'écrit pas dans ce que ele lit.
-                elif len(set(ele.reads).intersection(set(self.tasks[k].writes))) != 0:
+                elif len(ele.reads.intersection(self.tasks[k].writes)) != 0:
                     raise TaskValidationException(
-                        "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
-                
+                        "{0} écrit dans ce que lit {1} sans contrainte de précédance.".format(k, ele.name))
+
         if not self.detTestRnd():
-            raise TaskValidationException("Le test randomisé de déterminisme montre que le système est indéterminé")
+            raise TaskValidationException(
+                "Le test randomisé de déterminisme montre que le système est indéterminé")
 
         return True
 
     def detTestRnd(self):
         """
-        fct qui permet d'exécuter notre liste de tâche de manière séquentielle pour voir si une variable ou une dépendence n'a pas été oublié d'être spécifié. 
+        Fonction pour tester si le système est effectivement déterministe
         """
         results = []
         initialVariables = self.variables.copy()
+        # On récupère l'états des variables après 5 (nombre arbitraire) exécutions parallèles randomisées
         for _ in range(0, 5):
             self.run(shuffle=True)
             results.append(self.variables.copy())
             self.variables = initialVariables.copy()
-        
+
+        # On vérifie que l'état des variables est le même pour chaque exécution
         for varName in self.variables:
             baseValue = results[0][varName]
             for i in range(1, len(results)):
                 if results[i][varName] != baseValue:
                     return False
-        
+
         return True
-
-
 
     def parCost(self):
         """
@@ -242,7 +278,7 @@ class TaskSystem:
         self.runSeq()
         resultRun = []
         resultRunSeq = []
-        for _ in range(5):
+        for _ in range(10):
             start = time.perf_counter_ns()
             self.run()
             end = time.perf_counter_ns() - start
@@ -251,8 +287,14 @@ class TaskSystem:
             self.runSeq()
             end = time.perf_counter_ns() - start
             resultRunSeq.append(end)
-        print("temps moyen d'execution // : {0}ns".format(statistics.mean(resultRun)))
-        print("temps moyen d'execution séquentielle : {0}ns".format(statistics.mean(resultRunSeq)))
+        print(
+            "temps moyen d'execution // : {0}ns".format(statistics.median(resultRun)))
+        print(
+            "temps médian d'execution // : {0}ns".format(statistics.mean(resultRun)))
+        print("temps moyen d'execution séquentielle : {0}ns".format(
+            statistics.median(resultRunSeq)))
+        print("temps médian d'execution séquentielle : {0}ns".format(
+            statistics.mean(resultRunSeq)))
 
     def draw_graphviz(self):
         """
