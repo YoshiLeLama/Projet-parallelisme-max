@@ -207,6 +207,9 @@ class TaskSystem:
                 elif len(set(ele.reads).intersection(set(self.tasks[k].writes))) != 0:
                     raise TaskValidationException(
                         "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
+                
+        if not self.detTestRnd():
+            raise TaskValidationException("Le test randomisé de déterminisme montre que le système est indéterminé")
 
         return True
 
