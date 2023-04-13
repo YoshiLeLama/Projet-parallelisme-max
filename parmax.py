@@ -46,7 +46,7 @@ class TaskSystem:
         return self.precedencies[nom_tache]
 
     def get_precedencies(self, task_name: str):
-        """permet de récupérer toutes les précédences de la tâche évaluer. Sers pour vérifier qu'une liste de tâche est déterminer.
+        """permet de récupérer toutes les précédences de la tâche évaluer. Utilisé pour vérifier qu'une liste de tâche est déterminer.
         Par exemple si on a A->B->C et qu'on étudie C la focntion nous retournera A,B
 
         Args:
@@ -193,7 +193,7 @@ class TaskSystem:
 
         for k, v in prec.items():
             for ele in tasks:
-                # la condition permet de vérif qu'on a pas : A->B
+                # la condition permet de vérif qu'on a pas : A->B ou A->B->C
                 if ele.name == k or ele.name in self.get_precedencies(k) or k in self.get_precedencies(ele.name):
                     continue
                 # On regarde si les 2 éléments ne écrivent pas au même endroit
