@@ -161,13 +161,14 @@ class TaskSystem:
                 raise TaskValidationException(
                     "Le nom de tâche {} est dupliqué".format(x.name))
             tasks_set.add(x.name)
-        # contioen un nom de tache invalide
+        # contien un nom de tache invalide
         for (t_name, names) in prec.items():
             for name in names:
                 if name not in tasks_set:
                     raise TaskValidationException(
                         "La liste de précédence de {} contient un nom de tâche invalide".format(t_name))
 
+        # Au moins une des tâche est la racine
         if len(list(t for t in tasks if len(prec[t.name]) == 0)) == 0:
             raise TaskValidationException("Il n'y a pas de racine")
 
@@ -207,9 +208,10 @@ class TaskSystem:
                 elif len(set(ele.reads).intersection(set(self.tasks[k].writes))) != 0:
                     raise TaskValidationException(
                         "une tâches écrties dans ce que lie une autre tache sans contrainte de précédance.Le système de tâche est donc indéterminé.")
-                
+
         if not self.detTestRnd():
-            raise TaskValidationException("Le test randomisé de déterminisme montre que le système est indéterminé")
+            raise TaskValidationException(
+                "Le test randomisé de déterminisme montre que le système est indéterminé")
 
         return True
 
@@ -223,16 +225,14 @@ class TaskSystem:
             self.run(shuffle=True)
             results.append(self.variables.copy())
             self.variables = initialVariables.copy()
-        
+
         for varName in self.variables:
             baseValue = results[0][varName]
             for i in range(1, len(results)):
                 if results[i][varName] != baseValue:
                     return False
-        
+
         return True
-
-
 
     def parCost(self):
         """
@@ -251,8 +251,10 @@ class TaskSystem:
             self.runSeq()
             end = time.perf_counter_ns() - start
             resultRunSeq.append(end)
-        print("temps moyen d'execution // : {0}ns".format(statistics.mean(resultRun)))
-        print("temps moyen d'execution séquentielle : {0}ns".format(statistics.mean(resultRunSeq)))
+        print(
+            "temps moyen d'execution // : {0}ns".format(statistics.mean(resultRun)))
+        print("temps moyen d'execution séquentielle : {0}ns".format(
+            statistics.mean(resultRunSeq)))
 
     def draw_graphviz(self):
         """
