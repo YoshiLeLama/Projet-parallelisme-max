@@ -74,7 +74,7 @@ class TaskSystem:
             function: la fonction permettant de respecter les contrainte de précédence.
         """
         precedence_tasks = set(self.get_dependencies(task.name))
-        # on attends que toutes les conditions de précédences soit vérifiés.
+        # on attends que toutes les conditions de précédences soit vérifiés de la tâche mis en paramètre.
 
         def run_task():
             while True:
