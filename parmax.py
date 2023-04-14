@@ -49,8 +49,7 @@ class TaskSystem:
         for t in self.tasks.keys():
             precedencies[t] = set()
 
-
-        # On créer un chemin entre 2 tâches T1 et T2 si les conditions de bernstein 
+        # On créer un chemin entre 2 tâches T1 et T2 si les conditions de bernstein
         # L1 ∩ E2 = ∅ et L2 ∩ E1 = ∅ et E1 ∩ E2 = ∅ ne sont pas respecter.
         for tDestName, tDest in self.tasks.items():
             precs = self.get_precedencies(tDestName)
@@ -59,15 +58,17 @@ class TaskSystem:
                 if len(tOrigin.reads.intersection(tDest.writes)) != 0 or len(tDest.reads.intersection(tOrigin.writes)) != 0 or len(tOrigin.writes.intersection(tDest.writes)) != 0:
                     precedencies[tDestName].add(tOriginName)
 
-        # 1 -> 2 -> 6 
+        # 1 -> 2 -> 6
         # |---------|
         # On veut suppr le liens de 1 à 6
-        new_precedencies = {name: precs.copy() for name, precs in precedencies.items()}
+        new_precedencies = {name: precs.copy()
+                            for name, precs in precedencies.items()}
 
         # Fonction récursive pour retirer les précédences redondantes de la tâche tDest
         def removeRedundancy(tDest: str, tOrigin: str, tDestPrecs: set[str]):
-            new_precedencies[tDest].difference_update(precedencies[tOrigin].intersection(tDestPrecs))
-            print(precedencies, new_precedencies)
+            new_precedencies[tDest].difference_update(
+                precedencies[tOrigin].intersection(tDestPrecs))
+            # print(precedencies, new_precedencies)
             for newOrigin in precedencies[tOrigin]:
                 removeRedundancy(tDest, newOrigin, tDestPrecs)
 

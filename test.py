@@ -20,6 +20,7 @@ def runT2(v: dict):
 def runTsomme(v: dict):
     v['Z'] = v['X'] + v['Y']
 
+
 t1 = pm.Task("T1", set(), {"X"}, runT1)
 
 t2 = pm.Task("T2", set(), {"Y"}, runT2)
@@ -30,7 +31,7 @@ try:
     s1 = pm.TaskSystem([t1, t2, tSomme], {
                        "T1": [], "T2": [], "somme": ["T1", "T2"]},
                        variables)
-    
+
     # s1.algo_para_max()
     # s1.parCost()
     # s1.draw_pydot()
