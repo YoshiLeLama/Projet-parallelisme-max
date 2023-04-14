@@ -331,7 +331,7 @@ class TaskSystem:
                 precedence_graph.add_edge(dependence, task)
 
         plt.subplot(111)
-        nx.draw_networkx(precedence_graph, pos=nx.nx_pydot.pydot_layout(precedence_graph, prog="dot"),
+        nx.draw_networkx(precedence_graph, pos=nx.nx_pydot.pydot_layout(precedence_graph, prog="dot"), # type: ignore
                          with_labels=True, node_size=2000, node_shape="o",
                          font_family="JetBrains Mono", font_size=12,
                          node_color="#FFEEDD", edgecolors="#000000")
