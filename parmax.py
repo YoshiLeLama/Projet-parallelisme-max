@@ -109,7 +109,7 @@ class TaskSystem:
         permet de respecter les contraintes de précédence pour l'exécution // de notre liste de tâche à exécuter.
 
         Args:
-            task (Task): tâche à exécuter 
+            task (Task): tâche à exécuter
 
         Returns:
             function: la fonction permettant de respecter les contrainte de précédence.
@@ -159,7 +159,7 @@ class TaskSystem:
 
     def run(self, shuffle: bool = False) -> None:
         """
-        lance notre liste de tâche de manière // en respectant les contraintes de précédence. 
+        lance notre liste de tâche de manière // en respectant les contraintes de précédence.
         """
         self.finished_tasks = set()
         threads: list[Thread] = []
@@ -181,8 +181,8 @@ class TaskSystem:
         """fonctoin qui permet de vérifier que la liste de tâche fournie par l'utilisateur est valide. Pour cela on va faire plusieurs tests.
 
         Args:
-            tasks (list[Task]): liste des tâches 
-            prec (dict[str, list[str]]): la dépendence de précédence des différentes tâches 
+            tasks (list[Task]): liste des tâches
+            prec (dict[str, list[str]]): la dépendence de précédence des différentes tâches
 
         Erreurs:
             TaskValidationException
@@ -257,19 +257,23 @@ class TaskSystem:
         """
         results = []
         initialVariables = self.variables.copy()
-        # On récupère l'états des variables après 5 (nombre arbitraire) exécutions parallèles randomisées
-        for _ in range(0, 5):
-            self.run(shuffle=True)
-            results.append(self.variables.copy())
-            self.variables = initialVariables.copy()
+        for _ in range(5):
+            for k in initialVariables.keys():
+                self.variables[k] = random.randint(-1000, 1000)
+            initialVariablesRandomize = self.variables.copy()
+            # On récupère l'états des variables après 5 (nombre arbitraire) exécutions parallèles randomisées
+            for _ in range(0, 5):
+                self.run(shuffle=True)
+                results.append(self.variables.copy())
+                self.variables = initialVariablesRandomize.copy()
 
-        # On vérifie que l'état des variables est le même pour chaque exécution
-        for varName in self.variables:
-            baseValue = results[0][varName]
-            for i in range(1, len(results)):
-                if results[i][varName] != baseValue:
-                    return False
-
+            # On vérifie que l'état des variables est le même pour chaque exécution
+            for varName in self.variables:
+                baseValue = results[0][varName]
+                for i in range(1, len(results)):
+                    if results[i][varName] != baseValue:
+                        return False
+        self.variables = initialVariables.copy()
         return True
 
     def parCost(self):
