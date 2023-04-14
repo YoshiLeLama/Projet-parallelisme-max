@@ -266,7 +266,7 @@ class TaskSystem:
         results = []
         initialVariables = self.variables.copy()
         for k in initialVariables.keys():
-            self.variables[k] = random.randint(-1000, 1000)
+            self.variables[k] = random.randint(-10, 10)
         for _ in range(5):
             initialVariablesRandomize = self.variables.copy()
             # On récupère l'états des variables après 5 (nombre arbitraire) exécutions parallèles randomisées
