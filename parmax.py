@@ -273,6 +273,8 @@ class TaskSystem:
                 for i in range(1, len(results)):
                     if results[i][varName] != baseValue:
                         return False
+
+        # On récup les valeurs initiales
         self.variables = initialVariables.copy()
         return True
 
