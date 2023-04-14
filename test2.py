@@ -51,7 +51,6 @@ try:
             "M5": ["M3"],
             "M6": ["M4", "M5"]
         }, variables)
-    s1.draw_pydot()
     s1.algo_para_max()
 except pm.TaskValidationException as e:
     print(e)

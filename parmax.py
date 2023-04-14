@@ -266,24 +266,22 @@ class TaskSystem:
         results = []
         initialVariables = self.variables.copy()
         for k in initialVariables.keys():
-            self.variables[k] = random.randint(-10, 10)
-        for _ in range(5):
-            initialVariablesRandomize = self.variables.copy()
+            initialVariables[k] = random.randint(-10, 10)
             # On récupère l'états des variables après 5 (nombre arbitraire) exécutions parallèles randomisées
-            for _ in range(0, 5):
-                self.run(shuffle=True)
-                results.append(self.variables.copy())
-                self.variables = initialVariablesRandomize.copy()
-
-            # On vérifie que l'état des variables est le même pour chaque exécution
-            for varName in self.variables:
-                baseValue = results[0][varName]
-                for i in range(1, len(results)):
-                    if results[i][varName] != baseValue:
-                        return False
-
-        # On récup les valeurs initiales
         self.variables = initialVariables.copy()
+
+        for _ in range(0, 5):
+            self.run(shuffle=True)
+            results.append(self.variables.copy())
+            self.variables = initialVariables.copy()
+
+        # On vérifie que l'état des variables est le même pour chaque exécution
+        for varName in self.variables:
+            baseValue = results[0][varName]
+            for i in range(1, len(results)):
+                if results[i][varName] != baseValue:
+                    return False
+                    
         return True
 
     def parCost(self):
