@@ -12,9 +12,13 @@ variables = {'X': 0, 'Y': 0, 'Z': 0}
 def runT1(v: dict):
     v['X'] = 1
 
+    time.sleep(0.5)
+
 
 def runT2(v: dict):
     v['Y'] = 2
+
+    time.sleep(0.5)
 
 
 def runTsomme(v: dict):
@@ -38,9 +42,9 @@ try:
 except pm.TaskValidationException as e:
     print(e)
 else:
-    # print(s1.detTestRnd())
+    print(s1.detTestRnd())
     s1.parCost()
-    # s1.draw_pydot()
+    s1.draw_pydot()
     # s1.run()
     # print(X, Y, Z)
     # s1.run()
