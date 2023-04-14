@@ -77,9 +77,11 @@ class TaskSystem:
             for tOrigin in tDestPrecs:
                 removeRedundancy(tDest, tOrigin, tDestPrecs)
 
+        # On met à jour la liste des précédences avec les précédences nouvellement calculées
         self.precedencies = new_precedencies.copy()
 
         if shouldDraw:
+            # On affiche le graphe de précédence
             self.draw_pydot()
 
     def get_precedencies(self, task_name: str):
@@ -114,9 +116,11 @@ class TaskSystem:
         Returns:
             function: la fonction permettant de respecter les contrainte de précédence.
         """
+        # On récupère la liste des précédences de la tâche
         precedence_tasks = set(self.precedencies[task.name])
-        # on attends que toutes les conditions de précédences soit vérifiés de la tâche mis en paramètre.
 
+        # Closure d'exécution de la tâche
+        # On attend dans une boucle que toutes les tâches précédentes soient terminées, puis on exécute la tâche
         def run_task():
             while True:
                 if precedence_tasks.issubset(self.finished_tasks):
@@ -171,9 +175,11 @@ class TaskSystem:
         if shuffle:
             random.shuffle(threads)
 
+        # On lance tous les threads d'exécution des tâches
         for t in threads:
             t.start()
 
+        # on attend la fin de tous les threads pour terminer l'exécution du système de tâches
         for t in threads:
             t.join()
 
@@ -245,6 +251,8 @@ class TaskSystem:
                     raise TaskValidationException(
                         "{0} écrit dans ce que lit {1} sans contrainte de précédance.".format(k, ele.name))
 
+        # Test randomisé de déterminisme pour s'assurer que le système est bien déterministe
+        # (en cas d'oubli de variables dans la déclaration des tâches)
         if not self.detTestRnd():
             raise TaskValidationException(
                 "Le test randomisé de déterminisme montre que le système est indéterminé")
@@ -257,9 +265,9 @@ class TaskSystem:
         """
         results = []
         initialVariables = self.variables.copy()
+        for k in initialVariables.keys():
+            self.variables[k] = random.randint(-1000, 1000)
         for _ in range(5):
-            for k in initialVariables.keys():
-                self.variables[k] = random.randint(-1000, 1000)
             initialVariablesRandomize = self.variables.copy()
             # On récupère l'états des variables après 5 (nombre arbitraire) exécutions parallèles randomisées
             for _ in range(0, 5):
@@ -317,12 +325,14 @@ class TaskSystem:
                 # lien entre les noeuds pour les dépendances.
                 dot.edge(dependece, task)
 
-        dot.format = 'png'
-        dot.render('Graph', view=True)
+        dot.render('Graph', view=True, format='png')
 
     def draw_pydot(self):
+        """
+        Permet de générer l'arbre d'exécution en utilisant Networkx et Matplotlib.pyplot
+        """
         precedence_graph = nx.DiGraph()
-
+        # génération de tous les noeuds
         for task in self.tasks:
             precedence_graph.add_node(task)
         for task, dependecies in self.precedencies.items():
@@ -330,10 +340,12 @@ class TaskSystem:
                 # lien entre les noeuds pour les dépendances.
                 precedence_graph.add_edge(dependence, task)
 
+        # On crée le graphe
         plt.subplot(111)
-        nx.draw_networkx(precedence_graph, pos=nx.nx_pydot.pydot_layout(precedence_graph, prog="dot"), # type: ignore
+        nx.draw_networkx(precedence_graph, pos=nx.nx_pydot.pydot_layout(precedence_graph, prog="dot"),  # type: ignore
                          with_labels=True, node_size=2000, node_shape="o",
                          font_family="JetBrains Mono", font_size=12,
                          node_color="#FFEEDD", edgecolors="#000000")
 
+        # On affiche le résultat avec pyplot
         plt.show()
