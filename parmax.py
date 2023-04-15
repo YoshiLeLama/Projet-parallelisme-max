@@ -7,6 +7,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 
+#
+# Prjt fait par Flandin Léo et Roumilhac Antoine
+# disponible sur github : https://github.com/YoshiLeLama/Projet-parallelisme-max
+
 
 class Task:
     name: str
@@ -281,7 +285,7 @@ class TaskSystem:
             for i in range(1, len(results)):
                 if results[i][varName] != baseValue:
                     return False
-                    
+
         return True
 
     def parCost(self):
